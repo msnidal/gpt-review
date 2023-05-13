@@ -1,68 +1,68 @@
-name: 'gpt-review'
-description: 'Review your PRs with a GPT Model from Azure Open AI'
+name: "msnidal/gpt-review"
+description: "Review your PRs with a GPT Model from Open AI or Azure"
 branding:
-  icon: 'eye'
-  color: 'gray-dark'
+  icon: "eye"
+  color: "gray-dark"
 inputs:
   GIT_COMMIT_HASH:
-    description: 'SHA of the pull request-head to attach a review comment'
+    description: "SHA of the pull request-head to attach a review comment"
     required: true
   GITHUB_TOKEN:
-    description: 'Derivative token for using the GitHub REST API'
+    description: "Derivative token for using the GitHub REST API"
     required: true
   OPENAI_API_KEY:
-    description: 'OpenAI API Key'
+    description: "OpenAI API Key"
     required: true
   OPENAI_ORG_KEY:
-    description: 'OpenAI Organization ID'
+    description: "OpenAI Organization ID"
     required: true
   PR_NUMBER:
-    description: 'The pull request id (ie: 17)'
+    description: "The pull request id (ie: 17)"
     required: true
   PR_TITLE:
-    description: 'The pull request title'
+    description: "The pull request title"
     required: true
   REPOSITORY_NAME:
-    description: 'The repository name (ie: octocat/hello-world)'
+    description: "The repository name (ie: octocat/hello-world)"
     required: true
   AZURE_OPENAI_API:
-    description: 'URL of custom Azure Open AI API'
+    description: "URL of custom Azure Open AI API"
     required: false
   AZURE_OPENAI_API_KEY:
-    description: 'Key of custom Azure Open AI API'
+    description: "Key of custom Azure Open AI API"
     required: false
   FULL_SUMMARY:
-    description: 'Include summary of all changes (limited to first 32k tokens)'
+    description: "Include summary of all changes (limited to first 32k tokens)"
     default: true
     required: false
     type: string
   FILE_SUMMARY:
-    description: 'Include summary of changed file'
+    description: "Include summary of changed file"
     default: false
     required: false
     type: string
   FILE_SUMMARY_FULL:
-    description: 'Include individual summary of each changed file'
+    description: "Include individual summary of each changed file"
     default: true
     required: false
     type: string
   TEST_SUMMARY:
-    description: 'Include summary of test coverage'
+    description: "Include summary of test coverage"
     default: true
     required: false
     type: string
   BUG_SUMMARY:
-    description: 'Include summary of potential bugs'
+    description: "Include summary of potential bugs"
     default: false
     required: false
     type: string
   RISK_SUMMARY:
-    description: 'Include summary of potential breaking changes'
+    description: "Include summary of potential breaking changes"
     default: false
     required: false
     type: string
   RISK_BREAKING:
-    description: 'Include summary of potential breaking changes'
+    description: "Include summary of potential breaking changes"
     default: false
     required: false
     type: string
@@ -70,45 +70,44 @@ inputs:
 runs:
   using: "composite"
   steps:
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.11
-      - name: Install
-        shell: bash
-        run: |
-          sudo apt-get update
-          python3 -m venv .env
-          source .env/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install gpt-review
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+    - name: Install
+      shell: bash
+      run: |
+        sudo apt-get update
+        python3 -m venv .env
+        source .env/bin/activate
+        python -m pip install --upgrade pip
+        python -m pip install gpt-review
 
-      - name: Review PR and make comment
-        shell: bash
-        run: |
-          source .env/bin/activate
+    - name: Review PR and make comment
+      shell: bash
+      run: |
+        source .env/bin/activate
 
-          gpt github review \
-            --access-token $GITHUB_TOKEN \
-            --pull-request $PATCH_PR \
-            --repository $PATCH_REPO
-        env:
-          ACTION_REF: ${{ github.action_ref || env.BRANCH }}
-          GIT_COMMIT_HASH: ${{ inputs.GIT_COMMIT_HASH }}
-          GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
-          LINK: "https://github.com/${{ inputs.REPOSITORY_NAME }}/pull/${{ inputs.PR_NUMBER }}"
-          OPENAI_API_KEY: ${{ inputs.OPENAI_API_KEY }}
-          OPENAI_ORG_KEY: ${{ inputs.OPENAI_ORG_KEY }}
-          PR_TITLE: ${{ inputs.PR_TITLE }}
-          BRANCH:  ${{ env.BRANCH }}
-          AZURE_OPENAI_API_KEY: ${{ inputs.AZURE_OPENAI_API_KEY || '' }}
-          AZURE_OPENAI_API: ${{ inputs.AZURE_OPENAI_API || '' }}
-          PATCH_PR: ${{ github.event.pull_request.number }}
-          PATCH_REPO: ${{ github.repository }}
-          FULL_SUMMARY: ${{ inputs.FULL_SUMMARY }}
-          FILE_SUMMARY: ${{ inputs.FILE_SUMMARY }}
-          TEST_SUMMARY: ${{ inputs.TEST_SUMMARY }}
-          BUG_SUMMARY: ${{ inputs.BUG_SUMMARY }}
-          RISK_SUMMARY: ${{ inputs.RISK_SUMMARY }}
-          RISK_BREAKING: ${{ inputs.RISK_BREAKING }}
-
+        gpt github review \
+          --access-token $GITHUB_TOKEN \
+          --pull-request $PATCH_PR \
+          --repository $PATCH_REPO
+      env:
+        ACTION_REF: ${{ github.action_ref || env.BRANCH }}
+        GIT_COMMIT_HASH: ${{ inputs.GIT_COMMIT_HASH }}
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        LINK: "https://github.com/${{ inputs.REPOSITORY_NAME }}/pull/${{ inputs.PR_NUMBER }}"
+        OPENAI_API_KEY: ${{ inputs.OPENAI_API_KEY }}
+        OPENAI_ORG_KEY: ${{ inputs.OPENAI_ORG_KEY }}
+        PR_TITLE: ${{ inputs.PR_TITLE }}
+        BRANCH: ${{ env.BRANCH }}
+        AZURE_OPENAI_API_KEY: ${{ inputs.AZURE_OPENAI_API_KEY || '' }}
+        AZURE_OPENAI_API: ${{ inputs.AZURE_OPENAI_API || '' }}
+        PATCH_PR: ${{ github.event.pull_request.number }}
+        PATCH_REPO: ${{ github.repository }}
+        FULL_SUMMARY: ${{ inputs.FULL_SUMMARY }}
+        FILE_SUMMARY: ${{ inputs.FILE_SUMMARY }}
+        TEST_SUMMARY: ${{ inputs.TEST_SUMMARY }}
+        BUG_SUMMARY: ${{ inputs.BUG_SUMMARY }}
+        RISK_SUMMARY: ${{ inputs.RISK_SUMMARY }}
+        RISK_BREAKING: ${{ inputs.RISK_BREAKING }}
