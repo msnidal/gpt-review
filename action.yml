@@ -74,6 +74,12 @@ runs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.11
+
+    - name: Checkout gpt-review
+      uses: actions/checkout@v2
+      with:
+        repository: msnidal/gpt-review
+
     - name: Install
       shell: bash
       run: |
@@ -81,13 +87,12 @@ runs:
         python3 -m venv .env
         source .env/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install gpt-review
+        python -m pip install . # install from local directory
 
     - name: Review PR and make comment
       shell: bash
       run: |
         source .env/bin/activate
-
         gpt github review \
           --access-token $GITHUB_TOKEN \
           --pull-request $PATCH_PR \
