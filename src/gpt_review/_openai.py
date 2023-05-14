@@ -12,7 +12,7 @@ from gpt_review.context import _load_azure_openai_context
 ENCODING = tiktoken.encoding_for_model("gpt-4")
 
 
-def _encode_prompt(prompt, fast=False, large=False) -> "tuple[int, str]":
+def _encode_prompt(prompt, max_response_tokens, fast=False, large=False) -> "tuple[int, str]":
     """
     Encode the prompt to determine the number of tokens and
     truncate if necessary. This incurs a computational overhead,
@@ -20,28 +20,32 @@ def _encode_prompt(prompt, fast=False, large=False) -> "tuple[int, str]":
 
     Args:
         prompt (str): The prompt to send to GPT-4.
+        max_response_tokens (int): The maximum number of tokens to return.
+        fast (bool, optional): Whether to use the fast model. Defaults to False.
+        large (bool, optional): Whether to use the large model. Defaults to False.
 
     Returns:
         tuple[int, str]: The number of tokens and the encoded prompt respectively.
     """
     encoded = ENCODING.encode(prompt)
+    full_length = len(encoded) + max_response_tokens
 
-    if fast and len(encoded) > C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]:
+    if fast and full_length > C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]:
         logging.warn(
-            f"Fast model requested, but prompt is over {C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]} tokens. Truncating prompt."
+            f"Fast model requested, but prompt and response exceed {C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]} tokens. Truncating prompt."
         )
-        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]]
+        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL] - max_response_tokens]
     elif large and len(encoded) > C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]:
         logging.warn(
-            f"Large model requested, but prompt is over {C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]} tokens. Truncating prompt."
+            f"Large model requested, but prompt and response exceed {C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]} tokens. Truncating prompt."
         )
-        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]]
+        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL] - max_response_tokens]
     elif len(encoded) > C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]:
-        logging.warn(f"Prompt is over {C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]} tokens. Truncating prompt.")
-        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]]
+        logging.warn(f"Prompt and response exceed {C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]} tokens. Truncating prompt.")
+        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL] - max_response_tokens]
 
     decoded = ENCODING.decode(encoded)
-    return len(encoded), decoded
+    return len(encoded) + max_response_tokens, decoded
 
 
 def _get_model(tokens: str, fast: bool = False, large: bool = False) -> str:
@@ -109,7 +113,7 @@ def _call_gpt(
     Returns:
         str: The response from GPT.
     """
-    tokens, prompt = _encode_prompt(prompt, fast=fast, large=large)
+    tokens, prompt = _encode_prompt(prompt, max_tokens, fast=fast, large=large)
     model = _get_model(tokens, fast=fast, large=large)
     messages = messages or [{"role": "user", "content": prompt}]
 
