@@ -25,7 +25,7 @@ def _count_tokens(prompt) -> int:
 def _get_model(prompt: str, max_tokens: int, fast: bool = False, large: bool = False) -> str:
     """
     Get the OpenAI model based on the prompt length.
-    - when greater then 8k use gpt-4-32k
+    - if large is available and prompt + max_tokens > 8000, use the 32k context model
     - otherwise use gpt-4
     - enable fast to use gpt-35-turbo for small prompts
 
@@ -41,11 +41,20 @@ def _get_model(prompt: str, max_tokens: int, fast: bool = False, large: bool = F
     context = _load_azure_openai_context()
 
     tokens = _count_tokens(prompt)
-    if large or tokens + max_tokens > 8000:
+    if large and tokens + max_tokens > 8000:
+        logging.info("Using GPT-4 32k context model")
         return context.large_llm_model_deployment_id
-    if tokens + max_tokens > 4000:
+    elif fast and tokens + max_tokens <= 4000:
+        logging.info("Using GPT-3.5 turbo model")
+        return context.turbo_llm_model_deployment_id
+    else:
+        if large:
+            logging.warn("G_T-4 32k context requested, but prompt is under 8000 tokens. Using GPT-4 8k context model")
+        elif fast:
+            logging.warn("GPT-3.5 turbo requested, but prompt is over 4000 tokens. Using GPT-4 8k context model")
+        else:
+            logging.info("Using GPT-4 8k context model")
         return context.smart_llm_model_deployment_id
-    return context.turbo_llm_model_deployment_id if fast else context.smart_llm_model_deployment_id
 
 
 def _call_gpt(

@@ -11,7 +11,7 @@
 
 A Python based CLI and GitHub Action to use Open AI or Azure Open AI models to review contents of pull requests.
 
-## How to install CLI
+## Installation
 
 First, install the package via `pip`:
 
@@ -19,7 +19,7 @@ First, install the package via `pip`:
 pip install gpt-review
 ```
 
-### GPT API credentials
+### GPT API Credentials
 
 You will need to provide an OpenAI API key to use this CLI tool. In order of precedence, it will check the following methods:
 
