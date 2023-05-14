@@ -37,16 +37,14 @@ def _encode_prompt(prompt, fast=False, large=False) -> "tuple[int, str]":
         )
         encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]]
     elif len(encoded) > C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]:
-        logging.warn(
-            f"Prompt is over {C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]} tokens. Truncating prompt."
-        )
+        logging.warn(f"Prompt is over {C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]} tokens. Truncating prompt.")
         encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]]
 
+    decoded = ENCODING.decode(encoded)
+    return len(encoded), decoded
 
-    return len(encoded), ENCODING.decode(encoded)
 
-
-def _get_model(prompt: str, fast: bool = False, large: bool = False) -> str:
+def _get_model(tokens: str, fast: bool = False, large: bool = False) -> str:
     """
     Get the OpenAI model based on the prompt length.
     - if large is available and prompt + max_tokens > 8000, use the 32k context model
@@ -54,7 +52,7 @@ def _get_model(prompt: str, fast: bool = False, large: bool = False) -> str:
     - enable fast to use gpt-35-turbo for small prompts
 
     Args:
-        prompt (str): The prompt to send to GPT-4.
+        tokens (int): The number of tokens in the prompt.
         fast (bool, optional): Whether to use the fast model. Defaults to False.
         large (bool, optional): Whether to use the large model. Defaults to False.
 
@@ -63,7 +61,6 @@ def _get_model(prompt: str, fast: bool = False, large: bool = False) -> str:
     """
     context = _load_azure_openai_context()
 
-    tokens, prompt = _encode_prompt(prompt, fast=fast, large=large)
     if large and tokens > C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]:
         logging.info("Using GPT-4 32k context model")
         return context.large_llm_model_deployment_id
@@ -72,7 +69,11 @@ def _get_model(prompt: str, fast: bool = False, large: bool = False) -> str:
         return context.turbo_llm_model_deployment_id
     else:
         if large:
-            logging.warn("GPT-4 32k context requested, but prompt is under {} tokens. Using GPT-4 8k context model instead".format(C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]))
+            logging.warn(
+                "GPT-4 32k context requested, but prompt is under {} tokens. Using GPT-4 8k context model instead".format(
+                    C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]
+                )
+            )
         else:
             logging.info("Using GPT-4 8k context model")
         return context.smart_llm_model_deployment_id
@@ -108,11 +109,11 @@ def _call_gpt(
     Returns:
         str: The response from GPT.
     """
+    tokens, prompt = _encode_prompt(prompt, fast=fast, large=large)
+    model = _get_model(tokens, fast=fast, large=large)
     messages = messages or [{"role": "user", "content": prompt}]
-    try:
-        model = _get_model(prompt, fast=fast, large=large)
-        logging.info(f"Model Selected based on prompt size: {model}")
 
+    try:
         logging.info("Prompt sent to GPT: %s\n", prompt)
         completion = openai.ChatCompletion.create(
             model=model,
