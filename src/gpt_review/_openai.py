@@ -4,25 +4,49 @@ import time
 
 import openai
 from openai.error import RateLimitError
+import tiktoken
 
 import gpt_review.constants as C
 from gpt_review.context import _load_azure_openai_context
 
+ENCODING = tiktoken.encoding_for_model("gpt-4")
 
-def _count_tokens(prompt) -> int:
+
+def _encode_prompt(prompt, fast=False, large=False) -> "tuple[int, str]":
     """
-    Determine number of tokens in prompt.
+    Encode the prompt to determine the number of tokens and
+    truncate if necessary. This incurs a computational overhead,
+    but it's better than randomly truncating and then having to retry.
 
     Args:
         prompt (str): The prompt to send to GPT-4.
 
     Returns:
-        int: The number of tokens in the prompt.
+        tuple[int, str]: The number of tokens and the encoded prompt respectively.
     """
-    return int(len(prompt) / 4 * 3)
+    encoded = ENCODING.encode(prompt)
+
+    if fast and len(encoded) > C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]:
+        logging.warn(
+            f"Fast model requested, but prompt is over {C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]} tokens. Truncating prompt."
+        )
+        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_TURBO_MODEL]]
+    elif large and len(encoded) > C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]:
+        logging.warn(
+            f"Large model requested, but prompt is over {C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]} tokens. Truncating prompt."
+        )
+        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]]
+    elif len(encoded) > C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]:
+        logging.warn(
+            f"Prompt is over {C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]} tokens. Truncating prompt."
+        )
+        encoded = encoded[: C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]]
 
 
-def _get_model(prompt: str, max_tokens: int, fast: bool = False, large: bool = False) -> str:
+    return len(encoded), ENCODING.decode(encoded)
+
+
+def _get_model(prompt: str, fast: bool = False, large: bool = False) -> str:
     """
     Get the OpenAI model based on the prompt length.
     - if large is available and prompt + max_tokens > 8000, use the 32k context model
@@ -31,7 +55,6 @@ def _get_model(prompt: str, max_tokens: int, fast: bool = False, large: bool = F
 
     Args:
         prompt (str): The prompt to send to GPT-4.
-        max_tokens (int): The maximum number of tokens to generate.
         fast (bool, optional): Whether to use the fast model. Defaults to False.
         large (bool, optional): Whether to use the large model. Defaults to False.
 
@@ -40,18 +63,16 @@ def _get_model(prompt: str, max_tokens: int, fast: bool = False, large: bool = F
     """
     context = _load_azure_openai_context()
 
-    tokens = _count_tokens(prompt)
-    if large and tokens + max_tokens > 8000:
+    tokens, prompt = _encode_prompt(prompt, fast=fast, large=large)
+    if large and tokens > C.MAX_INPUT_TOKENS[C.GPT_SMART_MODEL]:
         logging.info("Using GPT-4 32k context model")
         return context.large_llm_model_deployment_id
-    elif fast and tokens + max_tokens <= 4000:
+    elif fast:
         logging.info("Using GPT-3.5 turbo model")
         return context.turbo_llm_model_deployment_id
     else:
         if large:
-            logging.warn("G_T-4 32k context requested, but prompt is under 8000 tokens. Using GPT-4 8k context model")
-        elif fast:
-            logging.warn("GPT-3.5 turbo requested, but prompt is over 4000 tokens. Using GPT-4 8k context model")
+            logging.warn("GPT-4 32k context requested, but prompt is under {} tokens. Using GPT-4 8k context model instead".format(C.MAX_INPUT_TOKENS[C.GPT_LARGE_MODEL]))
         else:
             logging.info("Using GPT-4 8k context model")
         return context.smart_llm_model_deployment_id
@@ -89,7 +110,7 @@ def _call_gpt(
     """
     messages = messages or [{"role": "user", "content": prompt}]
     try:
-        model = _get_model(prompt, max_tokens=max_tokens, fast=fast, large=large)
+        model = _get_model(prompt, fast=fast, large=large)
         logging.info(f"Model Selected based on prompt size: {model}")
 
         logging.info("Prompt sent to GPT: %s\n", prompt)

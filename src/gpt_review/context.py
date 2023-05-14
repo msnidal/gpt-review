@@ -15,10 +15,10 @@ class Context:
     azure_api_base: str
     azure_api_type: str = C.AZURE_API_TYPE
     azure_api_version: str = C.AZURE_API_VERSION
-    turbo_llm_model_deployment_id: str = C.AZURE_TURBO_MODEL
-    smart_llm_model_deployment_id: str = C.AZURE_SMART_MODEL
-    large_llm_model_deployment_id: str = C.AZURE_LARGE_MODEL
-    embedding_model_deployment_id: str = C.AZURE_EMBEDDING_MODEL
+    turbo_llm_model_deployment_id: str = C.GPT_TURBO_MODEL
+    smart_llm_model_deployment_id: str = C.GPT_SMART_MODEL
+    large_llm_model_deployment_id: str = C.GPT_LARGE_MODEL
+    embedding_model_deployment_id: str = C.GPT_EMBEDDING_MODEL
 
 
 def _load_context_file():

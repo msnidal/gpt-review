@@ -27,11 +27,18 @@ MAX_RETRIES = int(os.getenv("MAX_RETRIES", 15))
 AZURE_API_TYPE = "azure"
 AZURE_API_VERSION = "2023-03-15-preview"
 AZURE_CONFIG_FILE = "azure.yaml"
-AZURE_TURBO_MODEL = "gpt-3.5-turbo"
-AZURE_SMART_MODEL = "gpt-4"
-AZURE_LARGE_MODEL = "gpt-4-32k"
-AZURE_EMBEDDING_MODEL = "text-embedding-ada-002"
 AZURE_KEY_VAULT = "https://dciborow-openai.vault.azure.net/"
+
+GPT_TURBO_MODEL = "gpt-3.5-turbo"
+GPT_SMART_MODEL = "gpt-4"
+GPT_LARGE_MODEL = "gpt-4-32k"
+GPT_EMBEDDING_MODEL = "text-embedding-ada-002"
+
+MAX_INPUT_TOKENS = {
+    GPT_TURBO_MODEL: 4096,
+    GPT_SMART_MODEL: 8192,
+    GPT_LARGE_MODEL: 32768,
+}
 
 BUG_PROMPT_YAML = "prompt_bug.yaml"
 COVERAGE_PROMPT_YAML = "prompt_coverage.yaml"
